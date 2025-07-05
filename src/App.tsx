@@ -17,6 +17,8 @@ import CertificateGenerator from './components/certificates/CertificateGenerator
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 import MessageCenter from './components/messaging/MessageCenter';
 import UserManagement from './components/admin/UserManagement';
+import StudentDataView from './components/admin/StudentDataView';
+import CertificateViewer from './components/certificates/CertificateViewer';
 import CalendarView from './components/calendar/CalendarView';
 import ProfileEditor from './components/profile/ProfileEditor';
 import { useNotifications } from './hooks/useNotifications';
@@ -383,24 +385,70 @@ const MainApp: React.FC = () => {
         );
       case 'certificates':
         return (
-          <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Certificates</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">React Fundamentals</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">Completed on January 15, 2024</p>
-                <button
-                  onClick={() => {
-                    // Navigate to certificate view
-                    console.log('Viewing certificate');
-                  }}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  View Certificate
-                </button>
-              </div>
-            </div>
-          </div>
+          <CertificateViewer
+            certificates={[
+              {
+                id: '1',
+                userId: user.id,
+                courseId: '1',
+                issuedAt: new Date('2024-01-15'),
+                certificateUrl: 'https://example.com/cert1.pdf',
+              },
+            ]}
+            courses={mockCourses}
+            users={mockUsers}
+            onDownload={(certificateId) => {
+              console.log('Downloading certificate:', certificateId);
+              addNotification({
+                userId: user.id,
+                title: 'Certificate Downloaded',
+                message: 'Your certificate has been downloaded successfully.',
+                type: 'success',
+                read: false,
+              });
+            }}
+            onRevoke={user.role === 'admin' ? (certificateId) => {
+              console.log('Revoking certificate:', certificateId);
+              addNotification({
+                userId: user.id,
+                title: 'Certificate Revoked',
+                message: 'Certificate has been revoked successfully.',
+                type: 'warning',
+                read: false,
+              });
+            } : undefined}
+            onIssue={user.role === 'admin' ? (userId, courseId) => {
+              console.log('Issuing certificate:', { userId, courseId });
+              addNotification({
+                userId: user.id,
+                title: 'Certificate Issued',
+                message: 'Certificate has been issued successfully.',
+                type: 'success',
+                read: false,
+              });
+            } : undefined}
+          />
+        );
+      case 'students':
+        return (
+          <StudentDataView
+            students={mockUsers.filter(u => u.role === 'student')}
+            courses={mockCourses}
+            quizAttempts={[
+              {
+                id: '1',
+                userId: '3',
+                quizId: '1',
+                answers: {},
+                score: 85,
+                completedAt: new Date('2024-01-20'),
+                timeSpent: 1800,
+              },
+            ]}
+            onViewStudent={(studentId) => {
+              console.log('Viewing student:', studentId);
+            }}
+          />
         );
       case 'calendar':
         return (
@@ -574,6 +622,7 @@ const MainApp: React.FC = () => {
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
+        <Header onEditProfile={() => setShowProfileEditor(true)} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
           {renderContent()}
         </main>

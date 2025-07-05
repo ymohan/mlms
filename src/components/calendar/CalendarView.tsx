@@ -46,6 +46,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [showTodoModal, setShowTodoModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    date: Date | null;
+  }>({ show: false, x: 0, y: 0, date: null });
   const [filterType, setFilterType] = useState<'all' | 'class' | 'quiz' | 'assignment' | 'meeting'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -69,7 +75,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   });
 
   const filteredEvents = events.filter(event => {
-    const matchesType = filterType === 'all' || event.type === filterType;
+    const matchesType = filterType === 'all' || event.type === filterType || 
+                       (filterType === 'meeting' && event.type === 'event');
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesType && matchesSearch;
@@ -198,6 +205,47 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setCurrentDate(newDate);
   };
 
+  const handleRightClick = (e: React.MouseEvent, date: Date) => {
+    e.preventDefault();
+    setContextMenu({
+      show: true,
+      x: e.clientX,
+      y: e.clientY,
+      date: date,
+    });
+  };
+
+  const handleContextMenuAction = (action: 'event' | 'todo') => {
+    if (contextMenu.date) {
+      if (action === 'event') {
+        setEventForm({
+          ...eventForm,
+          date: contextMenu.date,
+        });
+        setShowEventModal(true);
+      } else {
+        setTodoForm({
+          ...todoForm,
+          dueDate: contextMenu.date,
+        });
+        setShowTodoModal(true);
+      }
+    }
+    setContextMenu({ show: false, x: 0, y: 0, date: null });
+  };
+
+  // Close context menu when clicking elsewhere
+  React.useEffect(() => {
+    const handleClick = () => {
+      setContextMenu({ show: false, x: 0, y: 0, date: null });
+    };
+    
+    if (contextMenu.show) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [contextMenu.show]);
+
   const getDaysInMonth = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -285,6 +333,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               className={`min-h-[120px] p-2 border-r border-b border-gray-200 dark:border-gray-700 ${
                 date ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'
               }`}
+              onContextMenu={date ? (e) => handleRightClick(e, date) : undefined}
             >
               {date && (
                 <>
@@ -735,6 +784,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu.show && (
+        <div
+          className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-2"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={() => handleContextMenuAction('event')}
+            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+          >
+            Add Event
+          </button>
+          <button
+            onClick={() => handleContextMenuAction('todo')}
+            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+          >
+            Add Task
+          </button>
         </div>
       )}
     </div>
