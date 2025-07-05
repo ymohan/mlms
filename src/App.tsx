@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import LandingPage from './components/landing/LandingPage';
 import AuthForm from './components/auth/AuthForm';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -10,6 +11,7 @@ import TeacherDashboard from './components/dashboard/TeacherDashboard';
 import StudentDashboard from './components/dashboard/StudentDashboard';
 import CourseList from './components/courses/CourseList';
 import CourseBuilder from './components/course/CourseBuilder';
+import DragDropCourseBuilder from './components/course/DragDropCourseBuilder';
 import QuizEngine from './components/quiz/QuizEngine';
 import QuizBuilder from './components/quiz/QuizBuilder';
 import NotificationCenter from './components/notifications/NotificationCenter';
@@ -46,6 +48,7 @@ import { Course, Quiz, User as UserType, Conversation, Message } from './types';
 const MainApp: React.FC = () => {
   const { user } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [showLanding, setShowLanding] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCourseBuilder, setShowCourseBuilder] = useState(false);
   const [showQuizBuilder, setShowQuizBuilder] = useState(false);
@@ -53,6 +56,7 @@ const MainApp: React.FC = () => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [useDragDropBuilder, setUseDragDropBuilder] = useState(false);
   
   const { 
     notifications, 
@@ -85,6 +89,15 @@ const MainApp: React.FC = () => {
       unreadCount: 1,
     },
   ];
+
+  // Show landing page if not authenticated
+  if (!user && showLanding) {
+    return (
+      <LandingPage
+        onGetStarted={() => setShowLanding(false)}
+      />
+    );
+  }
 
   if (!user) {
     return (
@@ -130,25 +143,51 @@ const MainApp: React.FC = () => {
 
     if (showCourseBuilder) {
       return (
-        <CourseBuilder
-          course={editingCourse || undefined}
-          onSave={(courseData) => {
-            console.log('Saving course:', courseData);
-            setShowCourseBuilder(false);
-            setEditingCourse(null);
-            addNotification({
-              userId: user.id,
-              title: 'Course Saved',
-              message: `Course "${courseData.title}" has been saved successfully.`,
-              type: 'success',
-              read: false,
-            });
-          }}
-          onCancel={() => {
-            setShowCourseBuilder(false);
-            setEditingCourse(null);
-          }}
-        />
+        <>
+          {useDragDropBuilder ? (
+            <DragDropCourseBuilder
+              course={editingCourse || undefined}
+              onSave={(courseData) => {
+                console.log('Saving course:', courseData);
+                setShowCourseBuilder(false);
+                setEditingCourse(null);
+                setUseDragDropBuilder(false);
+                addNotification({
+                  userId: user.id,
+                  title: 'Course Saved',
+                  message: `Course "${courseData.title}" has been saved successfully.`,
+                  type: 'success',
+                  read: false,
+                });
+              }}
+              onCancel={() => {
+                setShowCourseBuilder(false);
+                setEditingCourse(null);
+                setUseDragDropBuilder(false);
+              }}
+            />
+          ) : (
+            <CourseBuilder
+              course={editingCourse || undefined}
+              onSave={(courseData) => {
+                console.log('Saving course:', courseData);
+                setShowCourseBuilder(false);
+                setEditingCourse(null);
+                addNotification({
+                  userId: user.id,
+                  title: 'Course Saved',
+                  message: `Course "${courseData.title}" has been saved successfully.`,
+                  type: 'success',
+                  read: false,
+                });
+              }}
+              onCancel={() => {
+                setShowCourseBuilder(false);
+                setEditingCourse(null);
+              }}
+            />
+          )}
+        </>
       );
     }
 
@@ -206,10 +245,16 @@ const MainApp: React.FC = () => {
             courses={mockCourses}
             onCreateCourse={() => {
               setEditingCourse(null);
+              // Show choice for course builder type if user is teacher/admin
+              if (user.role === 'teacher' || user.role === 'admin') {
+                const useAdvanced = confirm('Use advanced drag & drop course builder?');
+                setUseDragDropBuilder(useAdvanced);
+              }
               setShowCourseBuilder(true);
             }}
             onEditCourse={(course) => {
               setEditingCourse(course);
+              setUseDragDropBuilder(false); // Default to regular builder for editing
               setShowCourseBuilder(true);
             }}
             onDeleteCourse={(courseId) => {
