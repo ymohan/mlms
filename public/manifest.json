@@ -1,0 +1,19 @@
+{
+  "name": "Learning Management System",
+  "short_name": "LMS",
+  "description": "Modern Learning Management System - Learn, Teach, and Grow",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
+  "lang": "en"
+}
